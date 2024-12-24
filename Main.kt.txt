@@ -1,0 +1,111 @@
+// Импортируем необходимые классы
+import kotlin.random.Random
+
+// Состояния еды для животных
+enum class Food {
+    MEAT, FISH, VEGETABLES
+}
+
+// Места, где могут гулять животные
+enum class Place {
+    PARK, GARDEN, STREET
+}
+
+// Состояние животных
+sealed class AnimalState {
+    object Sleeping : AnimalState()
+    data class Eating(val food: Food) : AnimalState()
+    data class Walking(val place: Place) : AnimalState()
+}
+
+// Абстрактный класс для животных
+abstract class Animal(open val name: String, open val state: AnimalState) {
+    abstract fun makeSound(): String
+}
+
+// Класс для кошек
+data class Cat(override val name: String, override val state: AnimalState) : Animal(name, state) {
+    override fun makeSound() = "Meow"
+}
+
+// Класс для собак
+data class Dog(override val name: String, override val state: AnimalState) : Animal(name, state) {
+    override fun makeSound() = "Woof"
+}
+
+// Генерация объектов
+fun generateAnimals(num: Int): List<Animal> {
+    val names = listOf("Tommy", "Max", "Bella", "Lucy")
+    val states = listOf(
+        AnimalState.Sleeping,
+        AnimalState.Eating(Food.values().random()),
+        AnimalState.Walking(Place.values().random())
+    )
+
+    return List(num) {
+        val name = names.random()
+        val state = states.random()
+        if (Random.nextBoolean()) {
+            Cat(name, state)
+        } else {
+            Dog(name, state)
+        }
+    }
+}
+
+// Фильтрация и преобразование
+fun filterAnimalsByState(animals: List<Animal>, state: AnimalState): List<Animal> {
+    return animals.filter { animal ->
+        when (state) {
+            is AnimalState.Sleeping -> animal.state is AnimalState.Sleeping
+            is AnimalState.Eating -> animal.state is AnimalState.Eating && (animal.state as AnimalState.Eating).food == (state as AnimalState.Eating).food
+            is AnimalState.Walking -> animal.state is AnimalState.Walking && (animal.state as AnimalState.Walking).place == (state as AnimalState.Walking).place
+        }
+    }
+}
+
+fun animalsToMapByState(animals: List<Animal>): Map<AnimalState, List<Animal>> {
+    return animals.groupBy { it.state }
+}
+
+// Обработка ошибок
+fun checkAnimalState(animal: Animal) {
+    // Поскольку state у нас не может быть null, проверка не нужна
+}
+
+// Расширения и ленивый делегат
+fun List<Animal>.printSounds() {
+    forEach { animal ->
+        println("${animal.name} says: ${animal.makeSound()}")
+    }
+}
+
+class AnimalShelter {
+    private val _animals: List<Animal> by lazy { generateAnimals(10) }
+    val animals: List<Animal> get() = _animals
+}
+
+// Основная функция
+fun main() {
+    val shelter = AnimalShelter()
+    val animals = shelter.animals
+
+    // Вывод всех животных
+    println("All animals:")
+    animals.printSounds()
+
+    // Фильтрация по состоянию
+    val sleepingAnimals = filterAnimalsByState(animals, AnimalState.Sleeping)
+    println("\nSleeping animals:")
+    sleepingAnimals.printSounds()
+
+    // Преобразование в Map по состояниям
+    val animalsMap = animalsToMapByState(animals)
+    println("\nAnimals grouped by state:")
+    animalsMap.forEach { (state, animals) ->
+        println("$state: ${animals.joinToString { it.name }}")
+    }
+
+    // Проверка состояния (проверка не требуется, так как state никогда не null)
+    animals.forEach { checkAnimalState(it) }
+}
